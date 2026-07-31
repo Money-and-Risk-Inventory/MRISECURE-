@@ -363,12 +363,9 @@
       </div>
       <div class="feedback-block"><b>What This Means:</b> <span id="out_annuityFeedback">—</span></div>
 
-      <div class="group-title">Connect with a Licensed Professional</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">By submitting, the client authorizes MRI Secure and participating financial professionals to contact them about this inquiry (calls, texts, or automated messages may apply). See Terms of Use.</p>
-      <input type="email" id="in_AnnuityContact" placeholder="client@email.com" style="margin-bottom:14px">
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="goTo(4)">Back to Sandbox</button>
-        <button class="btn btn-primary" onclick="submitLead()">Submit &amp; Finish</button>
+        <button class="btn btn-primary" onclick="window.print()">Print Report</button>
         <button class="btn btn-secondary" onclick="restartAll()">Begin Again</button>
       </div>
       <div class="error-banner" id="errorBanner5"></div>
@@ -755,21 +752,6 @@ async function loadAnnuityScore(){
 // Trigger annuity load whenever screen 5 becomes visible
 const origGoTo = goTo;
 goTo = function(n){ origGoTo(n); if(n===5) loadAnnuityScore(); };
-
-async function submitLead(){
-  clearError('errorBanner5');
-  const email = document.getElementById('in_AnnuityContact').value;
-  if(!email){ showError('errorBanner5','Enter an email to connect the client with an advisor.'); return; }
-  setLoading(true);
-  try{
-    await callSpreadsheetWeb({ AnnuityContact: email }, []);
-    alert('Thank you — the client has been submitted for advisor follow-up.');
-  }catch(err){
-    showError('errorBanner5', 'Submission failed: ' + err.message + '. (Note: lead-notification emails may require a separate SpreadsheetWeb Hub automation/Zapier trigger beyond this simple calculation call — verify with your Hub admin.)');
-  }finally{
-    setLoading(false);
-  }
-}
 
 /* ============================================================
    FORMATTING / GAUGE HELPERS
