@@ -130,6 +130,8 @@
   .advisor-modal h3{font-size:19px;margin-bottom:10px}
   .advisor-modal p{font-size:14px;color:var(--muted);margin-bottom:12px;line-height:1.6}
   .advisor-modal .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);background:#faf3e8;border-radius:6px;padding:3px 9px;margin-bottom:14px}
+  .handoff-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);background:#faf3e8;border-radius:6px;padding:3px 9px;margin-bottom:14px}
+  @media print{ .handoff-tag{display:none!important} }
   @media print{ .advisor-modal-overlay{display:none!important} }
 </style>
 </head>
@@ -139,6 +141,7 @@
   <div class="advisor-modal">
     <div class="tag">Advisor Notice — Not Visible to Client</div>
     <h3>Before Your Client Begins</h3>
+    <p><b>Tip:</b> Hand the device to your client for the Risk Assessment (Step 1) so they answer in their own words. Take it back for Step 2 to enter their portfolio holdings yourself from their account statements.</p>
     <p><b>Tip:</b> When your client reaches the Report screen, click <b>Print Report</b> to give them a clean printed copy (it strips out navigation and buttons automatically).</p>
     <div class="btn-row" style="margin-top:8px">
       <button class="btn btn-primary" onclick="document.getElementById('advisorModal').style.display='none'">Continue to Client Assessment</button>
@@ -228,6 +231,19 @@
       <div class="btn-row">
         <button class="btn btn-primary" id="btnStart" disabled onclick="goTo(1)">Agree &amp; Begin the Analysis</button>
       </div>
+
+      <div id="clientLinkBlock" style="margin-top:26px;border-top:1px solid var(--border);padding-top:20px">
+        <div class="group-title">Not With the Client Right Now?</div>
+        <p style="font-size:13.5px;color:var(--muted);margin-bottom:12px">Send them a link to complete just the Risk Assessment on their own device. You'll get an email the moment they finish, with a link to pick up right where they left off.</p>
+        <div class="q-row" style="border-bottom:none;padding-bottom:0">
+          <div class="q-text">Your email (to receive completed assessments)</div>
+          <input type="email" id="in_advisorEmailForLink" placeholder="you@yourfirm.com">
+        </div>
+        <div class="btn-row" style="margin-top:14px">
+          <button class="btn btn-secondary" onclick="generateClientLink()">Generate &amp; Copy Client Link</button>
+        </div>
+        <div id="clientLinkResult" style="display:none;margin-top:12px;font-size:13px;color:var(--muted)"></div>
+      </div>
     </div>
   </section>
 
@@ -235,8 +251,9 @@
   <section class="screen" id="screen-1">
     <div class="eyebrow">Step 1 of 5</div>
     <div class="card">
+      <div class="handoff-tag">Hand the Device to Your Client</div>
       <h2>Let's Get to Know You Before We Dive In</h2>
-      <p class="lead">There are no right or wrong answers — just be honest and thoughtful. This helps us understand your comfort with risk.</p>
+      <p class="lead">There are no right or wrong answers — just be honest and thoughtful. This helps us understand your comfort with risk. <b>Advisor:</b> please hand this device to your client so they can answer these questions themselves.</p>
 
       <div class="q-row">
         <div class="q-text">For registration purposes, please provide an email:</div>
@@ -251,9 +268,13 @@
       </div>
 
       <div class="btn-row">
-        <button class="btn btn-secondary" onclick="goTo(0)">Back</button>
-        <button class="btn btn-primary" onclick="validateAndGo(1,2)">Continue to Portfolio</button>
+        <button class="btn btn-secondary" id="btnScreen1Back" onclick="goTo(0)">Back</button>
+        <button class="btn btn-primary" id="btnScreen1Continue" onclick="validateAndGo(1,2)">Continue to Portfolio</button>
       </div>
+      <div id="clientSubmitConfirmation" style="display:none;margin-top:16px" class="feedback-block">
+        <b>Thank you!</b> Your answers have been sent to your advisor. You can close this window now.
+      </div>
+      <div class="error-banner" id="errorBannerClient"></div>
     </div>
   </section>
 
@@ -261,8 +282,9 @@
   <section class="screen" id="screen-2">
     <div class="eyebrow">Step 2 of 5</div>
     <div class="card">
-      <h2>Enter Your Portfolio Holdings</h2>
-      <p class="lead">Enter dollar amounts held in each category. Skip anything you don't hold — no need to enter $0.</p>
+      <div class="handoff-tag">Advisor: Take the Device Back</div>
+      <h2>Enter Your Client's Portfolio Holdings</h2>
+      <p class="lead"><b>Advisor:</b> using your client's account statements, enter dollar amounts held in each category below. Skip anything they don't hold — no need to enter $0.</p>
       <div id="assetGroups"></div>
       <div class="total-bar">
         <span>Total Portfolio Value</span>
@@ -390,6 +412,7 @@
    ============================================================ */
 const CONFIG = {
   apiEndpoint: 'https://mri-secure-proxy.vercel.app/api/calculate',
+  emailEndpoint: 'https://mri-secure-proxy.vercel.app/api/send-assessment',
   applicationId: '4dd712a6-09df-471b-ae28-7a9392009851',
   workspaceId: 'd6961a34-9f47-4dfd-adeb-8ac7bd0ed0d8',
 
@@ -457,6 +480,89 @@ const ANNUITY_OUTPUTS = ['AnnuityRating','AnnuityFeedback'];
    STATE
    ============================================================ */
 const state = { inputs: {}, report: {}, sandboxInputs: {}, sandbox: {}, annuity: {} };
+
+/* ============================================================
+   REMOTE CLIENT LINK / RESUME LINK
+   ============================================================ */
+const urlParams = new URLSearchParams(location.search);
+const isClientMode = urlParams.get('mode') === 'client';
+const advisorEmailParam = urlParams.get('advisor') ? decodeURIComponent(urlParams.get('advisor')) : '';
+const resumeParam = urlParams.get('resume');
+
+function generateClientLink(){
+  const email = document.getElementById('in_advisorEmailForLink').value.trim();
+  if(!email){ alert('Enter your email first so completed assessments can reach you.'); return; }
+  const link = location.origin + location.pathname + '?mode=client&advisor=' + encodeURIComponent(email);
+  const resultEl = document.getElementById('clientLinkResult');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = 'Link ready — send it to your client:<br><code style="word-break:break-all">' + link + '</code>';
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(()=>{
+      resultEl.innerHTML += '<br><b>Copied to clipboard.</b>';
+    }).catch(()=>{});
+  }
+}
+
+async function submitClientAssessment(){
+  clearError('errorBannerClient');
+  for(const q of RISK_QUESTIONS){
+    const el = document.getElementById('rq_'+q.key);
+    if(!el.value){ alert('Please answer every question before submitting.'); return; }
+  }
+  const email = document.getElementById('in_ContactInformation').value;
+  if(!email){ showError('errorBannerClient','Please enter your email before submitting.'); return; }
+
+  const answers = { ContactInformation: email, TargetReturn: document.getElementById('in_TargetReturn').value || '' };
+  RISK_QUESTIONS.forEach(q=>{ answers[q.key] = document.getElementById('rq_'+q.key).value; });
+
+  const resumeLink = location.origin + location.pathname + '?resume=' + encodeURIComponent(JSON.stringify(answers));
+
+  document.getElementById('btnScreen1Continue') && (document.getElementById('btnScreen1Continue').disabled = true);
+  setLoading(true);
+  try{
+    const res = await fetch(CONFIG.emailEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ advisorEmail: advisorEmailParam, clientEmail: email, resumeLink })
+    });
+    if(!res.ok){ throw new Error('HTTP ' + res.status); }
+    document.getElementById('clientSubmitConfirmation').style.display = 'block';
+    document.querySelector('#screen-1 .btn-row').style.display = 'none';
+  }catch(err){
+    showError('errorBannerClient', 'Could not send your assessment: ' + err.message + '. Please try again or contact your advisor directly.');
+  }finally{
+    setLoading(false);
+  }
+}
+
+function applyClientMode(){
+  if(!isClientMode) return;
+  const modal = document.getElementById('advisorModal');
+  if(modal) modal.style.display = 'none';
+  const clientLinkBlock = document.getElementById('clientLinkBlock');
+  if(clientLinkBlock) clientLinkBlock.style.display = 'none';
+  const btn = document.getElementById('btnScreen1Continue');
+  if(btn){ btn.textContent = 'Submit My Answers'; btn.setAttribute('onclick','submitClientAssessment()'); }
+  const back1 = document.getElementById('btnScreen1Back');
+  if(back1) back1.style.display = 'none';
+}
+
+function applyResumeData(){
+  if(!resumeParam) return;
+  let data;
+  try{ data = JSON.parse(decodeURIComponent(resumeParam)); }catch(e){ return; }
+  const modal = document.getElementById('advisorModal');
+  if(modal) modal.style.display = 'none';
+  const ci = document.getElementById('in_ContactInformation');
+  if(ci && data.ContactInformation) ci.value = data.ContactInformation;
+  const tr = document.getElementById('in_TargetReturn');
+  if(tr && data.TargetReturn) tr.value = data.TargetReturn;
+  RISK_QUESTIONS.forEach(q=>{
+    const el = document.getElementById('rq_'+q.key);
+    if(el && data[q.key]) el.value = data[q.key];
+  });
+  goTo(2);
+}
 
 /* ============================================================
    NAVIGATION
@@ -789,6 +895,8 @@ function renderGauge(trackId, points){
 }
 
 renderProgress(0);
+applyClientMode();
+applyResumeData();
 </script>
 </body>
 </html>
