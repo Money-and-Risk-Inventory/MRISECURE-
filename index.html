@@ -145,6 +145,11 @@
   .advisor-modal .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);background:#faf3e8;border-radius:6px;padding:3px 9px;margin-bottom:14px}
   .handoff-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);background:#faf3e8;border-radius:6px;padding:3px 9px;margin-bottom:14px}
   @media print{ .handoff-tag{display:none!important} }
+  .demo-banner{background:linear-gradient(135deg,#0B1F3A,#1c3a63);color:#fff;border-radius:12px;padding:16px 18px;margin-bottom:20px}
+  .demo-banner-title{font-size:16px;font-weight:800;color:#DCB032;margin-bottom:6px}
+  .demo-banner-text{font-size:14px;line-height:1.55;margin-bottom:8px}
+  .demo-banner-tip{font-size:13px;line-height:1.5;opacity:.9}
+  @media print{ .demo-banner{display:none!important} }
   @media print{ .advisor-modal-overlay{display:none!important} }
 </style>
 </head>
@@ -985,8 +990,76 @@ function renderGauge(trackId, points){
 }
 
 renderProgress(0);
+
+/* ============================================================
+   DEMO MODE  (?demo=linda) — sample client with answers + holdings preloaded
+   ============================================================ */
+const DEMO_PERSONAS = {
+  linda: {
+    name: 'Linda, 62 — retiring in 3 years',
+    story: "Linda is a careful saver. Her family once suffered a significant financial loss, and she sold investments during the last market downturn. Yet her $1M portfolio is about 80% stocks. MRI Secure has already scored her answers and her portfolio.",
+    answers: { ContactInformation:'demo@moneyandriskinventory.com', TargetReturn:'5', Risk1:'Disagree', Risk2:'Somewhat Disagree', MoneyVigilant:'Agree', Risk3:'Agree', Risk4:'Disagree', Trauma:'Yes', Risk5:'Somewhat Agree', Risk6:'Agree', Control:'Somewhat Agree', Risk7:'Somewhat Disagree' },
+    holdings: { StocksFunds:550000, GrowthStocks:250000, IntermediateBonds:100000, SavingsAccounts:50000, MoneyMarketAccounts:50000 },
+    sandboxMove: { from:'GrowthStocks', to:'FixedIndexedAnnuities', amount:250000, label:'$250,000 from Individual Stocks into a Fixed Indexed Annuity' }
+  }
+};
+function demoBanner(screenId, title, html){
+  const card = document.querySelector('#'+screenId+' .card');
+  if(!card || card.querySelector('.demo-banner')) return;
+  const b = document.createElement('div');
+  b.className = 'demo-banner';
+  b.innerHTML = '<div class="demo-banner-title">' + title + '</div><div class="demo-banner-text">' + html + '</div>';
+  card.insertBefore(b, card.firstChild);
+}
+function applyDemoMode(){
+  const key = (urlParams.get('demo') || '').toLowerCase();
+  const p = DEMO_PERSONAS[key];
+  if(!p) return;
+  const modal = document.getElementById('advisorModal');
+  if(modal) modal.style.display = 'none';
+  document.getElementById('in_ContactInformation').value = p.answers.ContactInformation;
+  document.getElementById('in_TargetReturn').value = p.answers.TargetReturn;
+  RISK_QUESTIONS.forEach(q=>{
+    const el = document.getElementById('rq_'+q.key);
+    if(el && p.answers[q.key]) el.value = p.answers[q.key];
+  });
+  Object.keys(p.holdings).forEach(k=>{
+    const el = document.getElementById('asset_'+k);
+    if(el) el.value = p.holdings[k];
+  });
+  updatePortfolioTotal();
+
+  demoBanner('screen-2', 'Sample Client: ' + p.name, p.story + ' If results don\'t appear automatically, scroll down and click <b>Calculate Results</b>.');
+  demoBanner('screen-3', 'Sample Client: ' + p.name, p.story + ' Below is her <b>Annuity Fit Score</b>. Next, click <b>See Portfolio Report</b>.');
+  demoBanner('screen-4', 'Sample Client: ' + p.name, 'Her portfolio report: compare her comfort with risk to the risk her portfolio actually carries. Then click <b>Explore the Sandbox</b>.');
+  demoBanner('screen-5', 'The Annuity Move', 'We\'ve modeled moving ' + p.sandboxMove.label + '. Scroll down to see how her risk changes. Feel free to adjust any amount and click <b>Recalculate Sandbox</b>.');
+
+  // Pre-set the sandbox reallocation, and run it automatically the first time the Sandbox opens
+  const origBuild = buildSandboxAssets;
+  buildSandboxAssets = function(){
+    origBuild();
+    const m = p.sandboxMove;
+    const fromEl = document.getElementById('sand_'+m.from);
+    const toEl = document.getElementById('sand_'+m.to);
+    if(fromEl && toEl){
+      fromEl.value = Math.max(0, (parseFloat(fromEl.value)||0) - m.amount);
+      toEl.value = (parseFloat(toEl.value)||0) + m.amount;
+      updateSandboxTotal();
+    }
+  };
+  let sandboxRan = false;
+  const prevGoTo = goTo;
+  goTo = function(n){
+    prevGoTo(n);
+    if(n===5 && !sandboxRan){ sandboxRan = true; submitSandbox(); }
+  };
+
+  goTo(2);
+  submitPortfolio();
+}
 applyClientMode();
 applyResumeData();
+applyDemoMode();
 </script>
 </body>
 </html>
