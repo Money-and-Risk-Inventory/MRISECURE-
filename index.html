@@ -421,6 +421,7 @@
             <span><i class="legend-dot" style="background:#2e8b57"></i>Sandbox Portfolio</span>
           </div>
         </div>
+        <div class="feedback-block" style="border-left-color:var(--warn)"><b>Potential Annual Loss (VAR):</b> <span id="out_sandVar">—</span> — how much the portfolio could lose in a bad year, before and after this change.</div>
         <div class="feedback-block"><b>Sandbox Classification:</b> <span id="out_sandCat">—</span></div>
         <div class="feedback-block"><b>MRI Secure Feedback:</b> <span id="out_sandFeedback">—</span></div>
         <div class="feedback-block"><b>Chance of Losing Money:</b> <span id="out_sandProbLose">—</span> &nbsp;|&nbsp; <b>Chance of Positive Return:</b> <span id="out_sandProbMake">—</span></div>
@@ -540,7 +541,7 @@ const ASSETS = [
 
 const GROUP_LABELS = { cash: 'Cash & Cash Equivalents', bond: 'Bonds & Bond Funds', growth: 'Growth & Other Assets' };
 const REPORT_OUTPUTS = ['PortfolioScore','MRICOMFORTWITHRISKSCORE','MRIRiskCatehgory','CurrentPortfolioCategory','Feedback','Action','ReturnFeedback','VAR','PorrtfolioValue'];
-const SANDBOX_OUTPUTS = ['SandPortfolioScore','SandPortfolioCategory','SandFeedback','SandProbLosingMoney','SandProbMakingMoney','SandAction','SandReturnFeedback','Balance','Warning','MRICOMFORTWITHRISKSCORE'];
+const SANDBOX_OUTPUTS = ['SandVAR','VAR','SandPortfolioScore','SandPortfolioCategory','SandFeedback','SandProbLosingMoney','SandProbMakingMoney','SandAction','SandReturnFeedback','Balance','Warning','MRICOMFORTWITHRISKSCORE'];
 const ANNUITY_OUTPUTS = ['AnnuityRating','AnnuityFeedback'];
 
 /* ============================================================
@@ -948,6 +949,15 @@ function renderSandbox(out){
   document.getElementById('out_sandScore').textContent = fmtScore(sandScore);
   document.getElementById('out_sandCat').textContent = renderCategory(out.get('SandPortfolioCategory'));
   document.getElementById('out_sandFeedback').textContent = out.get('SandFeedback') || '—';
+  (function(){
+    const b = parseFloat(out.get('VAR')), a = parseFloat(out.get('SandVAR'));
+    const el = document.getElementById('out_sandVar');
+    const loss = v => '$' + Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:0});
+    if(isNaN(a)){ el.textContent = '—'; return; }
+    if(isNaN(b)){ el.textContent = loss(a); return; }
+    const pct = b !== 0 ? Math.round((1 - Math.abs(a)/Math.abs(b))*100) : 0;
+    el.innerHTML = loss(b) + ' → <b>' + loss(a) + '</b>' + (pct>0 ? ' (' + pct + '% lower)' : (pct<0 ? ' (' + (-pct) + '% higher)' : ''));
+  })();
   document.getElementById('out_sandProbLose').textContent = fmtPct(out.get('SandProbLosingMoney'));
   document.getElementById('out_sandProbMake').textContent = fmtPct(out.get('SandProbMakingMoney'));
   document.getElementById('out_sandAction').textContent = out.get('SandAction') || '—';
