@@ -145,6 +145,7 @@
   .advisor-modal .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);background:#faf3e8;border-radius:6px;padding:3px 9px;margin-bottom:14px}
   .handoff-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);background:#faf3e8;border-radius:6px;padding:3px 9px;margin-bottom:14px}
   @media print{ .handoff-tag{display:none!important} }
+  .estimate-note{font-size:11.5px;line-height:1.5;color:var(--muted2);font-style:italic;margin:-6px 0 14px}
   .demo-banner{background:linear-gradient(135deg,#0B1F3A,#1c3a63);color:#fff;border-radius:12px;padding:16px 18px;margin-bottom:20px}
   .demo-banner-title{font-size:16px;font-weight:800;color:#DCB032;margin-bottom:6px}
   .demo-banner-text{font-size:14px;line-height:1.55;margin-bottom:8px}
@@ -381,6 +382,7 @@
       <div class="feedback-block"><b>Something to Consider:</b> <span id="out_action">—</span></div>
       <div class="feedback-block"><b>About Your Client's Target Return:</b> <span id="out_returnFeedback">—</span></div>
       <div class="feedback-block" style="border-left-color:var(--warn)"><b>Potential Annual Loss (VAR):</b> <span id="out_var">—</span> — in any given year, this portfolio could lose roughly this much.</div>
+      <p class="estimate-note">Risk scores and potential losses are estimates based on long-term industry assumptions for each asset type's return, volatility and correlation. Annuity assumptions are conservative and can be adjusted by firm and product. Results are hypothetical, are not a guarantee of future performance, and are intended to support, not replace, the advisor's judgment.</p>
       <div class="powered-by print-only"><svg viewBox="196.6 176.3 1254.5 495"><use href="#mriLogoMark"></use></svg><span>Powered by MRI</span></div>
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="goTo(3)">Back to Annuity Fit</button>
@@ -422,6 +424,7 @@
           </div>
         </div>
         <div class="feedback-block" style="border-left-color:var(--warn)"><b>Potential Annual Loss (VAR):</b> <span id="out_sandVar">—</span> — how much the portfolio could lose in a bad year, before and after this change.</div>
+      <p class="estimate-note">Risk scores and potential losses are estimates based on long-term industry assumptions for each asset type's return, volatility and correlation. Annuity assumptions are conservative and can be adjusted by firm and product. Results are hypothetical, are not a guarantee of future performance, and are intended to support, not replace, the advisor's judgment.</p>
         <div class="feedback-block"><b>Sandbox Classification:</b> <span id="out_sandCat">—</span></div>
         <div class="feedback-block"><b>MRI Secure Feedback:</b> <span id="out_sandFeedback">—</span></div>
         <div class="feedback-block"><b>Chance of Losing Money:</b> <span id="out_sandProbLose">—</span> &nbsp;|&nbsp; <b>Chance of Positive Return:</b> <span id="out_sandProbMake">—</span></div>
