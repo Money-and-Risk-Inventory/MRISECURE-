@@ -906,7 +906,7 @@ function renderReport(out){
   document.getElementById('out_feedback').textContent = out.get('Feedback') || '—';
   document.getElementById('out_action').textContent = out.get('Action') || '—';
   document.getElementById('out_returnFeedback').textContent = out.get('ReturnFeedback') || '—';
-  document.getElementById('out_var').textContent = fmtMoney(num(out.get('VAR')));
+  document.getElementById('out_var').textContent = fmtMoney(Math.abs(num(out.get('VAR'))));
   renderGauge('gaugeTrackReport', [
     { value: comfort, color: '#7fc0e8' },
     { value: score, color: '#0f3a5c' }
