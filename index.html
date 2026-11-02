@@ -560,8 +560,15 @@ const isClientMode = urlParams.get('mode') === 'client';
 const advisorEmailParam = urlParams.get('advisor') ? decodeURIComponent(urlParams.get('advisor')) : '';
 const resumeParam = urlParams.get('resume');
 
+// White-label: ?firm=Firm%20Name&logo=https://... brands the emails; carried through every link.
+const firmNameParam = urlParams.get('firm') || '';
+const firmLogoParam = urlParams.get('logo') || '';
+function brandQuery(){
+  return (firmNameParam ? '&firm=' + encodeURIComponent(firmNameParam) : '') +
+         (firmLogoParam ? '&logo=' + encodeURIComponent(firmLogoParam) : '');
+}
 function buildClientLink(advisorEmail){
-  return location.origin + location.pathname + '?mode=client&advisor=' + encodeURIComponent(advisorEmail);
+  return location.origin + location.pathname + '?mode=client&advisor=' + encodeURIComponent(advisorEmail) + brandQuery();
 }
 
 function generateClientLink(){
@@ -593,7 +600,7 @@ async function sendClientLink(){
     const res = await fetch(CONFIG.sendLinkEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ advisorEmail, clientEmail, clientLink: link })
+      body: JSON.stringify({ advisorEmail, clientEmail, clientLink: link, firmName: firmNameParam, firmLogo: firmLogoParam })
     });
     if(!res.ok){ throw new Error('HTTP ' + res.status); }
     resultEl.innerHTML = '<b>Sent!</b> Your client should receive the link shortly at ' + clientEmail + '. If they don\'t see it, ask them to check spam/junk.';
@@ -616,7 +623,7 @@ async function submitClientAssessment(){
   const answers = { ContactInformation: email, TargetReturn: document.getElementById('in_TargetReturn').value || '' };
   RISK_QUESTIONS.forEach(q=>{ answers[q.key] = document.getElementById('rq_'+q.key).value; });
 
-  const resumeLink = location.origin + location.pathname + '?resume=' + encodeURIComponent(JSON.stringify(answers));
+  const resumeLink = location.origin + location.pathname + '?resume=' + encodeURIComponent(JSON.stringify(answers)) + brandQuery();
 
   document.getElementById('btnScreen1Continue') && (document.getElementById('btnScreen1Continue').disabled = true);
   setLoading(true);
@@ -624,7 +631,7 @@ async function submitClientAssessment(){
     const res = await fetch(CONFIG.emailEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ advisorEmail: advisorEmailParam, clientEmail: email, resumeLink })
+      body: JSON.stringify({ advisorEmail: advisorEmailParam, clientEmail: email, resumeLink, firmName: firmNameParam, firmLogo: firmLogoParam })
     });
     if(!res.ok){ throw new Error('HTTP ' + res.status); }
     document.getElementById('clientSubmitConfirmation').style.display = 'block';
