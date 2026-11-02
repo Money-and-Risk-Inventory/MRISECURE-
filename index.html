@@ -377,7 +377,7 @@
         </div>
         <p style="font-size:11.5px;color:var(--muted2);margin-top:4px">Scale runs from 5 (very low risk) to 95 (very high risk).</p>
       </div>
-      <div class="feedback-block"><b>Advisor Classification:</b> <span id="out_advisorCat">—</span> &nbsp;|&nbsp; <b>Portfolio Classification:</b> <span id="out_portfolioCat">—</span></div>
+      <div class="feedback-block"><b>Client Classification:</b> <span id="out_advisorCat">—</span> &nbsp;|&nbsp; <b>Portfolio Classification:</b> <span id="out_portfolioCat">—</span></div>
       <div class="feedback-block"><b>MRI Secure Feedback:</b> <span id="out_feedback">—</span></div>
       <div class="feedback-block"><b>Something to Consider:</b> <span id="out_action">—</span></div>
       <div class="feedback-block"><b>About Your Client's Target Return:</b> <span id="out_returnFeedback">—</span></div>
@@ -846,10 +846,18 @@ async function callSpreadsheetWeb(inputs, outputs){
   const outs = json.response ? json.response.outputs : (json.outputs || {});
   return caseInsensitiveMap(outs || {});
 }
+// Cleans known typos in text returned by the scoring backend
+function cleanText(v){
+  if(typeof v !== 'string') return v;
+  return v.replace(/\bshoud\b/g,'should')
+          .replace(/\bthan than\b/g,'than')
+          .replace(/more risk than you they comfortable with/g,'more risk than they are comfortable with')
+          .replace(/^your client's/,"Your client's");
+}
 function caseInsensitiveMap(obj){
   const lower = {};
   Object.keys(obj).forEach(k=>{ lower[k.toLowerCase()] = obj[k]; });
-  return { get: (name)=> obj[name] !== undefined ? obj[name] : lower[name.toLowerCase()] };
+  return { get: (name)=> cleanText(obj[name] !== undefined ? obj[name] : lower[name.toLowerCase()]) };
 }
 
 function setLoading(on){ document.getElementById('loadingOverlay').classList.toggle('active', !!on); }
